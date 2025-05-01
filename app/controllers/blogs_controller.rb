@@ -4,6 +4,7 @@ class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
   before_action :set_blog, only: %i[show edit update destroy]
+  before_action :authorize_owner, only: %i[edit update destroy]
 
   def index
     @blogs = Blog.search(params[:term]).published.default_order
@@ -28,6 +29,8 @@ class BlogsController < ApplicationController
   end
 
   def update
+    return redirect_to blogs_url, alert: 'This request is invalid.' if blog_params[:random_eyecatch] && !current_user.premium
+
     if @blog.update(blog_params)
       redirect_to blog_url(@blog), notice: 'Blog was successfully updated.'
     else
@@ -44,10 +47,22 @@ class BlogsController < ApplicationController
   private
 
   def set_blog
-    @blog = Blog.find(params[:id])
+    action_name == 'show' ? set_visible_blog : set_owned_blog
+  end
+
+  def set_visible_blog
+    @blog = Blog.find_by(id: params[:id], secret: false) || Blog.find_by!(id: params[:id], user: current_user)
+  end
+
+  def set_owned_blog
+    @blog = current_user.blogs.find(params[:id])
   end
 
   def blog_params
     params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+  end
+
+  def authorize_owner
+    redirect_to blogs_url, alert: 'You are not the owner of this blog.' unless @blog.owned_by?(current_user)
   end
 end
