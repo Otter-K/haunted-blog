@@ -30,8 +30,6 @@ class BlogsController < ApplicationController
   end
 
   def update
-    return redirect_to blogs_url, alert: 'This request is invalid.' if blog_params[:random_eyecatch] && !current_user.premium
-
     if @blog.update(blog_params)
       redirect_to blog_url(@blog), notice: 'Blog was successfully updated.'
     else
@@ -56,7 +54,10 @@ class BlogsController < ApplicationController
   end
 
   def blog_params
-    params.require(:blog).permit(:title, :content, :secret, :random_eyecatch)
+    base_params = %i[title content secret]
+    base_params << :random_eyecatch if current_user.premium
+
+    params.require(:blog).permit(*base_params)
   end
 
   def authorize_owner
