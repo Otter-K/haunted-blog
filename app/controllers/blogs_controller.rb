@@ -3,7 +3,6 @@
 class BlogsController < ApplicationController
   skip_before_action :authenticate_user!, only: %i[index show]
 
-  before_action :set_visible_blog, only: %i[show]
   before_action :set_owned_blog, only: %i[edit update destroy]
   before_action :authorize_owner, only: %i[edit update destroy]
 
@@ -11,7 +10,9 @@ class BlogsController < ApplicationController
     @blogs = Blog.search(params[:term]).published.default_order
   end
 
-  def show; end
+  def show
+    @blog = Blog.visible_to(current_user).find(params[:id])
+  end
 
   def new
     @blog = Blog.new
@@ -44,10 +45,6 @@ class BlogsController < ApplicationController
   end
 
   private
-
-  def set_visible_blog
-    @blog = Blog.where(id: params[:id], secret: false).or(Blog.where(id: params[:id], user_id: current_user&.id)).first!
-  end
 
   def set_owned_blog
     @blog = current_user.blogs.find(params[:id])
