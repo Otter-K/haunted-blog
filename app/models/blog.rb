@@ -16,7 +16,7 @@ class Blog < ApplicationRecord
   scope :default_order, -> { order(id: :desc) }
 
   scope :visible_to, lambda { |user|
-    where(secret: false).or(where(user_id: user&.id))
+    published.or(where(user:))
   }
 
   def owned_by?(target_user)
